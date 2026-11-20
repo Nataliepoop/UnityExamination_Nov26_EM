@@ -10,6 +10,7 @@ public class PlatformerController : MonoBehaviour
     // These variables hold the key-bind reference. They are then to be initialized in void Start.
     InputAction moveAction;
     InputAction jumpAction;
+    InputAction attackAction;
 
     // Serialized referenses.
     [Header("References")]
@@ -22,6 +23,7 @@ public class PlatformerController : MonoBehaviour
     [SerializeField] private float maxSpeed = 10f;
     [SerializeField] private float jumpForce = 10f;
     [SerializeField] private float gravityMultiplier = 1;
+    [SerializeField] bool flipSpriteToMoveDirection;
 
     public bool controlEnabled { get; set; } = true; // Editable from Unity Events
 
@@ -53,20 +55,42 @@ public class PlatformerController : MonoBehaviour
         // Assign the correct action to each variable
         moveAction = inputActionAsset.FindAction("Move");
         jumpAction = inputActionAsset.FindAction("Jump");
+        attackAction = inputActionAsset.FindAction("Attack");
     }
 
     void Update()
     {
         velocity = TranslateInputToVelocity(moveInput);
 
+        // Set animator parameter for velocity
         if (animator != null)
         {
             animator.SetFloat("velocityX", rb.linearVelocity.x);
             animator.SetFloat("velocityY", rb.linearVelocity.y);
         }
 
+        // Set animator parameter for Attacking
+        if (attackAction.IsPressed())
+        {
+            animator.SetBool("Attacking", true);
+        }
+        else
+        {
+            animator.SetBool("Attacking", false);
+        }
+
         // Move
         moveInput = moveAction.ReadValue<Vector2>().normalized;
+
+        // Set animator parameter for Moving
+        if ((rb.linearVelocity.x + rb.linearVelocity.y) != 0)
+        {
+            animator.SetBool("Moving", true);
+        }
+        else
+        {
+            animator.SetBool("Moving", false);
+        }
 
         // Ground contact checks
         if (wasGrounded && !isGrounded)
@@ -99,8 +123,19 @@ public class PlatformerController : MonoBehaviour
         //    jumpInput = false;
         }
 
+        // Set animator parameter "Jumping"
+        if (velocity.y > 0.01f)
+        {
+            animator.SetTrigger("HasJumped");
+            animator.SetBool("Jumping", true);
+        }
+        else
+        {
+            animator.SetBool("Jumping", false);
+        }
+
         // Flip character according to direction (if one has been assigned)
-        if (avatarRoot)
+        if (avatarRoot && flipSpriteToMoveDirection == true)
         {
             if (moveInput.x > 0.01f)
             {
